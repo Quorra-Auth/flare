@@ -75,8 +75,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _checkRegistrationStatus();
 
     _appLinks.uriLinkStream.listen(_handleUri);
-
-    _handleInitialLink();
   }
 
   void _checkRegistrationStatus() async {
@@ -84,23 +82,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _activationStatus = existingKey != null ? 'Device is registered' : 'Device is not registered';
     });
-  }
-
-
-  Future<void> _handleInitialLink() async {
-    try {
-      final uri = await _appLinks.getInitialLink();
-      if (uri != null) {
-        setState(() {
-          _deepLinkText = 'Initial link: ${uri.toString()}';
-          _handleUri(uri);
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _deepLinkText = 'Failed to get initial link: $e';
-      });
-    }
   }
 
   Future<String> signMessage(String message, KeyPair keyPair) async {
@@ -245,9 +226,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
       if (confirmed == true) {
-        await sendAuthenticateRequest(uri, message, signature, "accepted");
+        await sendAuthenticateRequest(uri, "accepted accepted", signature, "accepted");
       } else {
-        await sendAuthenticateRequest(uri, message, signature, "rejected");
+        await sendAuthenticateRequest(uri, "rejected rejected", signature, "rejected");
       }
     }
   }
