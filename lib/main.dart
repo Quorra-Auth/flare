@@ -226,9 +226,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
       if (confirmed == true) {
-        await sendAuthenticateRequest(uri, "accepted accepted", signature, "accepted");
+        await sendAuthenticateRequest(uri, message, signature, "accepted");
       } else {
-        await sendAuthenticateRequest(uri, "rejected rejected", signature, "rejected");
+        await sendAuthenticateRequest(uri, message, signature, "rejected");
       }
     }
   }
