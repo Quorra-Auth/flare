@@ -40,6 +40,14 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+dependency_overrides:
+  flutter_secure_storage_linux:
+    git:
+      url: https://github.com/m-berto/flutter_secure_storage.git
+      ref: patch-2
+      path: flutter_secure_storage_linux
+  flutter_secure_storage_platform_interface: 2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
