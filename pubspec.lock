@@ -183,22 +183,21 @@ packages:
     source: hosted
     version: "0.2.0"
   flutter_secure_storage_linux:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: flutter_secure_storage_linux
-      ref: patch-2
-      resolved-ref: f076cbb65b075afd6e3b648122987a67306dc298
-      url: "https://github.com/m-berto/flutter_secure_storage.git"
-    source: git
-    version: "2.0.1"
-  flutter_secure_storage_platform_interface:
-    dependency: "direct overridden"
-    description:
-      name: flutter_secure_storage_platform_interface
-      sha256: b8337d3d52e429e6c0a7710e38cf9742a3bb05844bd927450eb94f80c11ef85d
+      name: flutter_secure_storage_linux
+      sha256: "2b5c76dce569ab752d55a1cee6a2242bcc11fdba927078fb88c503f150767cda"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "3.0.0"
+  flutter_secure_storage_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_platform_interface
+      sha256: "8ceea1223bee3c6ac1a22dabd8feefc550e4729b3675de4b5900f55afcb435d6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   flutter_secure_storage_web:
     dependency: transitive
     description:
