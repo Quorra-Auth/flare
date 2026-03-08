@@ -10,13 +10,13 @@ import 'package:sec/sec.dart';
 import '../models/derived_linking_key.dart';
 import '../models/lnurl_auth_request.dart';
 import '../utils/crypto.dart';
-import 'seed.dart';
+import 'identity.dart';
 
 class AuthService {
-  final SeedService seedService;
+  final IdentityService identityService;
   final _secp256k1 = EC.secp256k1;
 
-  AuthService(this.seedService);
+  AuthService(this.identityService);
 
   List<int> lnurlAuthDerivationPath(String domain) {
     final digest = sha256.convert(utf8.encode(domain)).bytes;
@@ -38,8 +38,11 @@ class AuthService {
     ];
   }
 
-  Future<DerivedLinkingKey> deriveLinkingKey(String domain) async {
-    final seed = await seedService.getMasterSeed();
+  Future<DerivedLinkingKey> deriveLinkingKey(
+      AuthIdentity identity,
+      String domain,
+      ) async {
+    final seed = await identityService.mnemonicToSeedBytes(identity.mnemonic);
     bip32.BIP32 node = bip32.BIP32.fromSeed(seed);
 
     final path = lnurlAuthDerivationPath(domain);
@@ -76,8 +79,11 @@ class AuthService {
     return hex.encode(der);
   }
 
-  Future<void> sendLnurlAuth(LnurlAuthRequest request) async {
-    final linkingKey = await deriveLinkingKey(request.domain);
+  Future<void> sendLnurlAuth(
+      AuthIdentity identity,
+      LnurlAuthRequest request,
+      ) async {
+    final linkingKey = await deriveLinkingKey(identity, request.domain);
     final sigHex = await signK1Hex(request.k1, linkingKey.privateKey);
     final keyHex = hex.encode(linkingKey.compressedPublicKey);
 

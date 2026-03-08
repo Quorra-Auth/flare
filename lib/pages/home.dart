@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../pages/confirmation.dart';
 import '../services/auth.dart';
 import '../services/lnurl.dart';
-import '../services/seed.dart';
+import '../services/identity.dart';
 import '../utils/bech32.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -21,7 +21,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _secureStorage = const FlutterSecureStorage();
   final _appLinks = AppLinks();
 
-  late final SeedService _seedService;
+  late final IdentityService _identityService;
   late final LnurlService _lnurlService;
   late final AuthService _authService;
 
@@ -32,9 +32,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    _seedService = SeedService(_secureStorage);
+    _identityService = IdentityService(_secureStorage);
     _lnurlService = LnurlService();
-    _authService = AuthService(_seedService);
+    _authService = AuthService(_identityService);
 
     _initialize();
   }
@@ -45,7 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _ensureSeedExists() async {
-    await _seedService.ensureSeedExists();
+    await _identityService.ensureSeedExists();
 
     if (!mounted) return;
     setState(() {
