@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Same bolt as linux/flatpak/one.k8ie.Flare.svg, scaled to sit inside
+         the adaptive icon safe zone. -->
+    <group
+        android:pivotX="64"
+        android:pivotY="64"
+        android:scaleX="0.565"
+        android:scaleY="0.565"
+        android:translateX="-10"
+        android:translateY="-10">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M72,18L36,70h24l-8,40 40,-56H68z" />
+    </group>
+</vector>
