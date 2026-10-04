@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>one.k8ie.Flare</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Flare</name>
+  <summary>LNURL-auth keychain for Quorra</summary>
+  <description>
+    <p>Flare is a proof-of-concept keychain for Quorra. It manages your LNURL-auth login keys so you can sign in to services without a Lightning wallet. Keychains can't hold or spend any currency, they only log you in.</p>
+  </description>
+
+  <developer id="one.k8ie">
+    <name>Kate</name>
+  </developer>
+
+  <url type="homepage">https://github.com/Quorra-Auth/flare</url>
+  <url type="vcs-browser">https://github.com/Quorra-Auth/flare</url>
+  <url type="bugtracker">https://github.com/Quorra-Auth/flare/issues</url>
+
+  <launchable type="desktop-id">one.k8ie.Flare.desktop</launchable>
+  <content_rating type="oars-1.1" />
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+
+  <releases>
+    <release version="1.0.0" date="2026-10-04" />
+  </releases>
+</component>

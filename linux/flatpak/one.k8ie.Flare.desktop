@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Flare
+Comment=LNURL-auth keychain for Quorra
+Exec=flare %u
+Icon=one.k8ie.Flare
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=Quorra;LNURL;Login;
+StartupNotify=true
+MimeType=x-scheme-handler/lightning;
