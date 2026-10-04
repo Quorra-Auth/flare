@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../pages/confirmation.dart';
+import '../pages/scanner.dart';
 import '../services/auth.dart';
 import '../services/lnurl.dart';
 import '../services/seed.dart';
 import '../utils/bech32.dart';
+import '../utils/lnurl_input.dart';
 import '../widgets/centered_content.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,6 +28,8 @@ class _HomePageState extends State<HomePage> {
   late final SeedService _seedService;
   late final AuthService _authService;
   StreamSubscription<Uri>? _linkSub;
+
+  static final _canScan = Platform.isAndroid || Platform.isIOS;
 
   bool _loading = true;
   String? _error;
@@ -63,11 +68,23 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _handleUri(Uri uri) async {
+  Future<void> _handleUri(Uri uri) =>
+      _handleLnurl(extractLnurl(uri.toString()));
+
+  Future<void> _scan() async {
+    final lnurl = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerPage()),
+    );
+    if (lnurl != null) await _handleLnurl(lnurl);
+  }
+
+  Future<void> _handleLnurl(String? lnurl) async {
     if (!mounted || _loading || _error != null) return;
 
     try {
-      final decoded = decodeLnurlToUrl(uri.path);
+      if (lnurl == null) throw Exception('Not an LNURL link');
+      final decoded = decodeLnurlToUrl(lnurl);
       final request = _lnurlService.parseLnurlAuth(Uri.parse(decoded));
 
       final confirmed = await Navigator.push<bool>(
@@ -139,7 +156,9 @@ class _HomePageState extends State<HomePage> {
           Text('Flare is ready', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Open an LNURL-auth link or scan a login code to sign in.',
+            _canScan
+                ? 'Open an LNURL-auth link or scan a login code to sign in.'
+                : 'Open an LNURL-auth link to sign in.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
@@ -151,6 +170,13 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Flare')),
+      floatingActionButton: _canScan && !_loading && _error == null
+          ? FloatingActionButton.extended(
+              onPressed: _scan,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan QR code'),
+            )
+          : null,
       body: CenteredContent(child: content),
     );
   }

@@ -49,3 +49,4 @@ app.*.map.json
 /linux/flatpak/one.k8ie.Flare.yaml
 /linux/flatpak/generated
 /linux/flatpak/.flatpak-builder
+/linux/flatpak/flatpak-repo
