@@ -6,7 +6,7 @@ on:
       - test/**
       - lib/**
       - android/**
-      - .github/workflows/flatpak.yml
+      - .github/workflows/apk.yml
   pull_request:
     paths:
       - pubspec.yaml
@@ -14,7 +14,7 @@ on:
       - test/**
       - lib/**
       - android/**
-      - .github/workflows/flatpak.yml
+      - .github/workflows/apk.yml
 
   workflow_dispatch:
 name: APK - dev
