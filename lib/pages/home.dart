@@ -50,9 +50,10 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       await _seedService.ensureSeedExists();
-      _linkSub ??= _appLinks.uriLinkStream.listen(_handleUri);
       if (!mounted) return;
       setState(() => _loading = false);
+      // Subscribe only once ready: app_links replays a startup link on listen.
+      _linkSub ??= _appLinks.uriLinkStream.listen(_handleUri);
     } catch (e) {
       if (!mounted) return;
       setState(() {
