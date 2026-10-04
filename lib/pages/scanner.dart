@@ -20,7 +20,8 @@ class _CameraOption {
   int get hashCode => Object.hash(facing, lens);
 }
 
-/// Full-screen QR scanner. Pops with the LNURL (lowercase bech32) it finds.
+/// Full-screen QR scanner. Pops with the raw text of the first Lightning QR
+/// code it finds.
 class ScannerPage extends StatefulWidget {
   const ScannerPage({super.key});
 
@@ -52,10 +53,11 @@ class _ScannerPageState extends State<ScannerPage> {
       final raw = barcode.rawValue;
       if (raw == null) continue;
 
-      final lnurl = extractLnurl(raw);
-      if (lnurl != null) {
+      // Hand over anything Lightning-related, including payment requests, so
+      // the home page can explain what Flare does and doesn't support.
+      if (classifyLightningInput(raw) != LightningInputKind.unknown) {
         _done = true;
-        Navigator.pop(context, lnurl);
+        Navigator.pop(context, raw);
         return;
       }
     }
@@ -255,7 +257,7 @@ class _ScannerPageState extends State<ScannerPage> {
                   ),
                   child: Text(
                     _unsupportedCode
-                        ? "That isn't an LNURL-auth code"
+                        ? "That isn't a Lightning code"
                         : 'Point the camera at a login QR code',
                     style: TextStyle(
                       color: _unsupportedCode

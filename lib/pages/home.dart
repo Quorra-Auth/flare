@@ -68,23 +68,26 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _handleUri(Uri uri) =>
-      _handleLnurl(extractLnurl(uri.toString()));
+  Future<void> _handleUri(Uri uri) => _handleInput(uri.toString());
 
   Future<void> _scan() async {
-    final lnurl = await Navigator.push<String>(
+    final input = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (_) => const ScannerPage()),
     );
-    if (lnurl != null) await _handleLnurl(lnurl);
+    if (input != null) await _handleInput(input);
   }
 
-  Future<void> _handleLnurl(String? lnurl) async {
+  Future<void> _handleInput(String input) async {
     if (!mounted || _loading || _error != null) return;
 
     try {
-      if (lnurl == null) throw Exception('Not an LNURL link');
-      final decoded = decodeLnurlToUrl(lnurl);
+      final kind = classifyLightningInput(input);
+      if (kind != LightningInputKind.lnurl) {
+        throw UnsupportedLinkException(unsupportedMessageFor(kind));
+      }
+
+      final decoded = decodeLnurlToUrl(extractLnurl(input)!);
       final request = _lnurlService.parseLnurlAuth(Uri.parse(decoded));
 
       final confirmed = await Navigator.push<bool>(
@@ -103,11 +106,31 @@ class _HomePageState extends State<HomePage> {
             ? 'Signed in to ${request.domain}'
             : 'Login cancelled',
       );
+    } on UnsupportedLinkException catch (e) {
+      _showUnsupported(e.message);
     } catch (e) {
       _showMessage(
         "Couldn't open this link: ${e.toString().replaceFirst('Exception: ', '')}",
       );
     }
+  }
+
+  void _showUnsupported(String message) {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.block),
+        title: const Text('Unsupported link'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showMessage(String message) {
