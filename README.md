@@ -1,16 +1,11 @@
-# flare
+# Flare
 
-PoC Flutter client
+Flare is a proof-of-concept Keychain application for [Quorra](https://github.com/Quorra-Auth/server).
 
-## Getting Started
+Because of my lack of interest in Android and Flutter, it is mostly vibe-coded using [Voucher](https://github.com/k8ieone/voucher) as reference.
 
-This project is a starting point for a Flutter application.
+## State
 
-A few resources to get you started if this is your first Flutter project:
+Because I view this application as a second-class citizen, it is in a much worse overall state than Voucher.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+That being said, it should at least work since I use it myself on a daily basis.
