@@ -1,0 +1,118 @@
+name: Flatpak - dev
+
+on:
+  push:
+    paths:
+      - pubspec.yaml
+      - pubspec.lock
+      - lib/**
+      - linux/**
+      - .github/workflows/flatpak.yml
+  pull_request:
+    paths:
+      - pubspec.yaml
+      - pubspec.lock
+      - lib/**
+      - linux/**
+      - .github/workflows/flatpak.yml
+  workflow_dispatch:
+
+concurrency:
+  group: flatpak-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    name: Generate manifest
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Checkout flatpak-flutter
+        uses: actions/checkout@v4
+        with:
+          repository: TheAppgineer/flatpak-flutter
+          # v0.15.0
+          ref: e59a96fcb0fcf48fcd46e8134cae64c26fdc3290
+          path: .flatpak-flutter
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install flatpak-flutter Dependencies
+        run: pip install -r .flatpak-flutter/requirements.txt
+      # The template builds `main` from GitHub. Pin it to the commit being
+      # tested instead, so CI builds the change and not the branch tip.
+      - name: Pin App Source to This Commit
+        working-directory: linux/flatpak
+        run: |
+          python3 - <<'EOF'
+          import os
+          import yaml
+
+          path = 'flatpak-flutter-template.yaml'
+          with open(path) as f:
+              manifest = yaml.safe_load(f)
+
+          pinned = False
+          for module in manifest['modules']:
+              for source in module.get('sources', []):
+                  if (
+                      isinstance(source, dict)
+                      and source.get('type') == 'git'
+                      and 'flutter/flutter' not in source.get('url', '')
+                  ):
+                      source['url'] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}.git"
+                      source.pop('branch', None)
+                      source['commit'] = os.environ['GITHUB_SHA']
+                      pinned = True
+
+          assert pinned, 'No app git source found in the template'
+          with open(path, 'w') as f:
+              yaml.safe_dump(manifest, f, sort_keys=False)
+          EOF
+      - name: Generate Manifest
+        working-directory: linux/flatpak
+        run: python3 ../../.flatpak-flutter/flatpak-flutter.py flatpak-flutter-template.yaml
+      - name: Upload Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-manifest
+          path: |
+            linux/flatpak/one.k8ie.Flare.yaml
+            linux/flatpak/generated
+
+  flatpak:
+    name: Flatpak (${{ matrix.variant.arch }})
+    needs: manifest
+    runs-on: ${{ matrix.variant.runner }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    strategy:
+      # Don't fail the whole workflow if one architecture fails
+      fail-fast: false
+      matrix:
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Download Manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-manifest
+          path: linux/flatpak
+      # No cache-key on purpose: the action's default key restores the most
+      # recent cache for this architecture, which saves re-downloading the
+      # Flutter SDK. A custom key containing the SHA would never restore.
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: flare.flatpak
+          manifest-path: linux/flatpak/one.k8ie.Flare.yaml
+          arch: ${{ matrix.variant.arch }}
