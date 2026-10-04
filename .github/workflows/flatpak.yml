@@ -113,12 +113,12 @@ jobs:
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: flare-${{ matrix.arch }}.flatpak
+          bundle: flare-${{ matrix.variant.arch }}.flatpak
           upload-artifact: false
           manifest-path: linux/flatpak/one.k8ie.Flare.yaml
           arch: ${{ matrix.variant.arch }}
 
       - uses: actions/upload-artifact@v7
         with:
-          path: flare-${{ matrix.arch }}.flatpak
+          path: flare-${{ matrix.variant.arch }}.flatpak
           archive: false
