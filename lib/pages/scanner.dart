@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../services/lnurl.dart';
+import '../utils/bech32.dart';
 import '../utils/lnurl_input.dart';
 
 class _CameraOption {
@@ -20,8 +22,8 @@ class _CameraOption {
   int get hashCode => Object.hash(facing, lens);
 }
 
-/// Full-screen QR scanner. Pops with the raw text of the first Lightning QR
-/// code it finds.
+/// Full-screen QR scanner. Pops with the LNURL of the first valid LNURL-auth
+/// QR code it finds. Other codes are explained on the page itself.
 class ScannerPage extends StatefulWidget {
   const ScannerPage({super.key});
 
@@ -30,13 +32,14 @@ class ScannerPage extends StatefulWidget {
 }
 
 class _ScannerPageState extends State<ScannerPage> {
+  final _lnurlService = LnurlService();
   final _controller = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
   );
 
   _CameraOption? _selected;
   bool _done = false;
-  bool _unsupportedCode = false;
+  String? _problem;
   Timer? _hintTimer;
 
   @override
@@ -49,23 +52,44 @@ class _ScannerPageState extends State<ScannerPage> {
   void _onDetect(BarcodeCapture capture) {
     if (_done) return;
 
+    String? problem;
+
     for (final barcode in capture.barcodes) {
       final raw = barcode.rawValue;
       if (raw == null) continue;
 
-      // Hand over anything Lightning-related, including payment requests, so
-      // the home page can explain what Flare does and doesn't support.
-      if (classifyLightningInput(raw) != LightningInputKind.unknown) {
+      final kind = classifyLightningInput(raw);
+      if (kind == LightningInputKind.unknown) {
+        problem ??= "That isn't a Lightning code";
+        continue;
+      }
+
+      try {
+        if (kind != LightningInputKind.lnurl) {
+          throw UnsupportedLinkException(unsupportedMessageFor(kind));
+        }
+
+        // Only leave the camera for a valid login code; anything else is
+        // explained here so the user can simply point at another code.
+        final lnurl = extractLnurl(raw)!;
+        _lnurlService.parseLnurlAuth(Uri.parse(decodeLnurlToUrl(lnurl)));
+
         _done = true;
-        Navigator.pop(context, raw);
+        Navigator.pop(context, lnurl);
         return;
+      } on UnsupportedLinkException catch (e) {
+        problem ??= e.message;
+      } catch (_) {
+        problem ??= "Couldn't read this login code";
       }
     }
 
-    setState(() => _unsupportedCode = true);
+    if (problem == null) return;
+
+    setState(() => _problem = problem);
     _hintTimer?.cancel();
-    _hintTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _unsupportedCode = false);
+    _hintTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _problem = null);
     });
   }
 
@@ -228,7 +252,7 @@ class _ScannerPageState extends State<ScannerPage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: _unsupportedCode
+                color: _problem != null
                     ? theme.colorScheme.error
                     : Colors.white,
                 width: 4,
@@ -244,23 +268,22 @@ class _ScannerPageState extends State<ScannerPage> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: Container(
-                  key: ValueKey(_unsupportedCode),
+                  key: ValueKey(_problem),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: _unsupportedCode
+                    color: _problem != null
                         ? theme.colorScheme.errorContainer
                         : Colors.black54,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _unsupportedCode
-                        ? "That isn't a Lightning code"
-                        : 'Point the camera at a login QR code',
+                    _problem ?? 'Point the camera at a login QR code',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _unsupportedCode
+                      color: _problem != null
                           ? theme.colorScheme.onErrorContainer
                           : Colors.white,
                     ),
