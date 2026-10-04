@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:app_links/app_links.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../pages/confirmation.dart';
@@ -7,62 +9,64 @@ import '../services/auth.dart';
 import '../services/lnurl.dart';
 import '../services/seed.dart';
 import '../utils/bech32.dart';
+import '../widgets/centered_content.dart';
 
-class MyHomePage extends StatefulWidget {
-  final String title;
-
-  const MyHomePage({super.key, required this.title});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final _secureStorage = const FlutterSecureStorage();
+class _HomePageState extends State<HomePage> {
   final _appLinks = AppLinks();
+  final _lnurlService = LnurlService();
 
   late final SeedService _seedService;
-  late final LnurlService _lnurlService;
   late final AuthService _authService;
+  StreamSubscription<Uri>? _linkSub;
 
-  String _deepLinkText = 'Waiting for deep link...';
-  String _seedStatus = 'Checking...';
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-
-    _seedService = SeedService(_secureStorage);
-    _lnurlService = LnurlService();
+    _seedService = SeedService(const FlutterSecureStorage());
     _authService = AuthService(_seedService);
-
     _initialize();
   }
 
-  Future<void> _initialize() async {
-    await _ensureSeedExists();
-    _appLinks.uriLinkStream.listen(_handleUri);
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
   }
 
-  Future<void> _ensureSeedExists() async {
-    await _seedService.ensureSeedExists();
-
-    if (!mounted) return;
+  Future<void> _initialize() async {
     setState(() {
-      _seedStatus = 'LNURL-auth seed is ready';
+      _loading = true;
+      _error = null;
     });
+    try {
+      await _seedService.ensureSeedExists();
+      _linkSub ??= _appLinks.uriLinkStream.listen(_handleUri);
+      if (!mounted) return;
+      setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   Future<void> _handleUri(Uri uri) async {
-    if (!mounted) return;
+    if (!mounted || _loading || _error != null) return;
 
     try {
       final decoded = decodeLnurlToUrl(uri.path);
-
-      setState(() {
-        _deepLinkText = decoded;
-      });
-
       final request = _lnurlService.parseLnurlAuth(Uri.parse(decoded));
 
       final confirmed = await Navigator.push<bool>(
@@ -71,55 +75,82 @@ class _MyHomePageState extends State<MyHomePage> {
           builder: (_) => ConfirmLoginPage(
             domain: request.domain,
             action: request.action,
+            onConfirm: () => _authService.sendLnurlAuth(request),
           ),
         ),
       );
 
-      if (confirmed != true) {
-        _showMessage('Login cancelled');
-        return;
-      }
-
-      await _authService.sendLnurlAuth(request);
-      _showMessage('LNURL-auth successful for ${request.domain}');
+      _showMessage(
+        confirmed == true
+            ? 'Signed in to ${request.domain}'
+            : 'Login cancelled',
+      );
     } catch (e) {
-      _showMessage('Failed to handle LNURL-auth: $e');
+      _showMessage(
+        "Couldn't open this link: ${e.toString().replaceFirst('Exception: ', '')}",
+      );
     }
   }
 
   void _showMessage(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Info'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_seedStatus),
-              const SizedBox(height: 12),
-              Text(_deepLinkText, textAlign: TextAlign.center),
-            ],
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final Widget content;
+    if (_loading) {
+      content = const CircularProgressIndicator();
+    } else if (_error != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 72, color: scheme.error),
+          const SizedBox(height: 24),
+          Text('Something went wrong', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
-        ),
-      ),
+          const SizedBox(height: 24),
+          FilledButton.tonal(
+            onPressed: _initialize,
+            child: const Text('Retry'),
+          ),
+        ],
+      );
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bolt, size: 72, color: scheme.primary),
+          const SizedBox(height: 24),
+          Text('Flare is ready', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          Text(
+            'Open an LNURL-auth link or scan a login code to sign in.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Flare')),
+      body: CenteredContent(child: content),
     );
   }
 }
